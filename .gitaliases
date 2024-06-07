@@ -1,0 +1,78 @@
+# Git alias ⬇️
+[alias]
+	s= "!git status"
+	go= "!f(){ git checkout \"$1\"; }; f"
+	ride= "!f(){ git checkout -b \"$1\"; }; f"
+	lg = "!git log --pretty=format:\"%C(magenta)%h%Creset -%C(red)%d%Creset %s %C(dim green)(%cr) [%an]\" --abbrev-commit -300"
+	lgd = "!git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative origin/main..$1"
+	done = "!git push origin HEAD"
+	nah = "!f(){ git reset --hard; git clean -df; if [ -d ".git/rebase-apply" ] || [ -d ".git/rebase-merge" ]; then git rebase --abort; fi; }; f"
+	forget="!git fetch -p && git branch -vv | awk '/: gone]/{print $1}' | xargs git branch -D"
+	forgetlist="!git fetch -p && git branch -vv | awk '/: gone]/{print $1}'"
+	uncommit = "reset --soft HEAD~1"
+	decommit = "reset --hard HEAD~1"
+	list-commits= "!f(){ git rev-list --all --not $(git rev-list --all ^$1); }; f"
+	show-commits= "!f(){ \
+		branch=$1; \
+		git list-commits ${branch} | grep -v \"\\*\" | xargs -n 1 git show; \
+	}; f"
+	move-branch = "!f(){ if [ \"$1\" != '' ]; then git stash -u; git stash branch \"$1\" stash@{0}; echo \"new branch: \"$1\"\"; else echo 'you forgot branch name'; fi; }; f"
+	files = "!f() { git diff --name-status \"$1^\" \"$1\"; }; f"
+	force-fast-forward = "!f(){ git push -f -u origin  \"$1\"; } f"
+	clean-branch= "!f(){ git branch -D \"$1\"; }; f"
+	clean-remote-branch= "!f(){ git push origin -d \"$1\"; }; f"
+	clean-local-branches= "!f(){ \
+		git branch --merged origin/main | grep -v \"\\*\" | xargs -n 1 git branch -d; \
+	}; f"
+	clean-remote-branches= "!f(){ \
+		index=0; \
+		for k in $(git branch -r --format='%(refname:short)' --merged origin/main | sed 's#^\\s*origin/##'); do \
+			if ((\"$(git log -1 --since='5 month ago' -s $k|wc -l)\"==0)); then \
+				git clean-remote-branch \"$k\"; \
+			fi; \
+		done; \
+	}; f"
+	delete-merged-branches= "!f(){ \
+		git branch -r --merged | grep -v main; \
+	}; f"
+	new-branch= "!f(){ if [ \"$2\" != '' ]; then git fetch; git checkout -b \"$1\" \"$(git rev-parse \"$2\")\"; else git checkout -b \"$1\"; fi; }; f"
+	new-feature-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch feature/\"$1\" \"$2\"; else git new-branch feature/\"$1\"; fi; }; f"
+	new-bugfix-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch bugfix/\"$1\" \"$2\"; else git new-branch bugfix/\"$1\"; fi; }; f"
+	new-hotfix-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch hotfix/\"$1\" \"$2\"; else git new-branch hotfix/\"$1\"; fi; }; f"
+	new-chore-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch chore/\"$1\" \"$2\"; else git new-branch chore/\"$1\"; fi; }; f"
+	new-docs-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch docs/\"$1\" \"$2\"; else git new-branch docs/\"$1\"; fi; }; f"
+	new-release-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch release/\"$1\" \"$2\"; else git new-branch release/\"$1\"; fi; }; f"
+	new-refactor-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch refactor/\"$1\" \"$2\"; else git new-branch refactor/\"$1\"; fi; }; f"
+	remove-tag= "!f(){ if [ \"$1\" != '' ]; then git tag -d \"$1\"; git push origin --delete \"$1\"; echo \"tag deleted: \"$1\"\"; else echo 'you forgot tag name'; fi; }; f"
+	clone-tag = "!f(){ git clone \"$1\" \"$2\" --branch \"$3\" --single-branch; }; f"
+	recent = "!f(){ \
+		count=$1 refbranch=$2 ref=$3; \
+		git for-each-ref \"${ref:-refs/heads}\" \
+			--sort=-committerdate \
+			--format='%(refname:short)|%(HEAD)%(color:yellow)%(refname:short)|%(color:bold green)%(committerdate:relative)|%(color:blue)%(subject)|%(color:magenta)%(authorname)%(color:reset)' \
+			--color=always \
+			--count=${count:-50} | \
+		while read line; do \
+			branch=$(echo \"$line\" | awk 'BEGIN { FS = \"|\" }; { print $1 }' | tr -d '*'); \
+			ahead=$(git rev-list --count \"${refbranch:-origin/main}..${branch}\"); \
+			behind=$(git rev-list --count \"${branch}..${refbranch:-origin/main}\"); \
+			colorline=$(echo \"$line\" | sed 's/^[^|]*|//'); \
+			echo \"$ahead|$behind|$colorline\" | awk -F'|' -vOFS='|' '{$5=substr($5,1,70)}1' ; \
+		done | \
+		( echo \"ahead|behind|branch|lastcommit|message|author\n\" && cat) | column -ts'|'; \
+	}; f"
+	recentb = "!f(){ \
+		count=$1; \
+		git recent \"${count:-10}\" origin/main refs/remotes; \
+	}; f"re
+	recenttags = "!f(){ \
+		count=$1; \
+		git recent \"${count:-10}\" origin/main refs/tags; \
+	}; f"
+	clone-partial = "!f(){ \
+		url=$1 folders=$2 branch=$3; \
+		git clone --filter=blob:none --no-checkout --depth 6 --sparse \"$url\" \"$4\"; \
+		cd \"$4\"; \
+		git sparse-checkout add \"$2\"; \
+		git checkout; \
+	}; f"
