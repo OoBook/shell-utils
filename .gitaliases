@@ -1,16 +1,38 @@
 # Git alias ⬇️
 [alias]
+  gl = config --global -l
 	s= "!git status"
 	go= "!f(){ git checkout \"$1\"; }; f"
+  go-back = "!f(){ \
+    git checkout -; \
+    git stash pop; \
+  }; f"
 	ride= "!f(){ git checkout -b \"$1\"; }; f"
+  del = branch -D
+  br = branch --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate
 	lg = "!git log --pretty=format:\"%C(magenta)%h%Creset -%C(red)%d%Creset %s %C(dim green)(%cr) [%an]\" --abbrev-commit -300"
 	lgd = "!git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative origin/main..$1"
 	done = "!git push origin HEAD"
+  dv = difftool -t vimdiff -y
+  se = !git rev-list --all | xargs git grep -F
 	nah = "!f(){ git reset --hard; git clean -df; if [ -d ".git/rebase-apply" ] || [ -d ".git/rebase-merge" ]; then git rebase --abort; fi; }; f"
 	forget="!git fetch -p && git branch -vv | awk '/: gone]/{print $1}' | xargs git branch -D"
 	forgetlist="!git fetch -p && git branch -vv | awk '/: gone]/{print $1}'"
+  last = log -1 HEAD --stat
 	uncommit = "reset --soft HEAD~1"
 	decommit = "reset --hard HEAD~1"
+	res = "reset --hard"
+	sproud = "!f(){ \
+    type=$2; \
+    git checkout origin/dev; \
+    git pull origin dev; \
+    git new-${type:-feature}-branch $1; \
+  }; f"
+  sproud-stash = "!f(){ \
+    type=$2; \
+    git stash; \
+    git new-${type:-feature}-branch $1 origin/dev; \
+  }; f"
 	list-commits= "!f(){ git rev-list --all --not $(git rev-list --all ^$1); }; f"
 	show-commits= "!f(){ \
 		branch=$1; \
@@ -43,6 +65,8 @@
 	new-docs-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch docs/\"$1\" \"$2\"; else git new-branch docs/\"$1\"; fi; }; f"
 	new-release-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch release/\"$1\" \"$2\"; else git new-branch release/\"$1\"; fi; }; f"
 	new-refactor-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch refactor/\"$1\" \"$2\"; else git new-branch refactor/\"$1\"; fi; }; f"
+  new-test-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch test/\"$1\" \"$2\"; else git new-branch test/\"$1\"; fi; }; f"
+	new-build-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch build/\"$1\" \"$2\"; else git new-branch build/\"$1\"; fi; }; f"
 	remove-tag= "!f(){ if [ \"$1\" != '' ]; then git tag -d \"$1\"; git push origin --delete \"$1\"; echo \"tag deleted: \"$1\"\"; else echo 'you forgot tag name'; fi; }; f"
 	clone-tag = "!f(){ git clone \"$1\" \"$2\" --branch \"$3\" --single-branch; }; f"
 	recent = "!f(){ \
@@ -64,7 +88,7 @@
 	recentb = "!f(){ \
 		count=$1; \
 		git recent \"${count:-10}\" origin/main refs/remotes; \
-	}; f"re
+	}; f"
 	recenttags = "!f(){ \
 		count=$1; \
 		git recent \"${count:-10}\" origin/main refs/tags; \
