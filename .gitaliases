@@ -3,6 +3,7 @@
   gl = config --global -l
 	s= "!git status"
 	go= "!f(){ git checkout \"$1\"; }; f"
+	back= "!f(){ git checkout -; }; f"
   go-back = "!f(){ \
     git checkout -; \
     git stash pop; \
@@ -19,8 +20,8 @@
 	forget="!git fetch -p && git branch -vv | awk '/: gone]/{print $1}' | xargs git branch -D"
 	forgetlist="!git fetch -p && git branch -vv | awk '/: gone]/{print $1}'"
   last = log -1 HEAD --stat
-	uncommit = "reset --soft HEAD~1"
-	decommit = "reset --hard HEAD~1"
+	uncommit = "reset --soft HEAD~1" # Undo last commit but keep changes staged
+	decommit = "reset --hard HEAD~1" # Undo last commit and discard changes
 	res = "reset --hard"
 	sproud = "!f(){ \
     type=$2; \
@@ -63,13 +64,15 @@
 	new-hotfix-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch hotfix/\"$1\" \"$2\"; else git new-branch hotfix/\"$1\"; fi; }; f"
 	new-chore-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch chore/\"$1\" \"$2\"; else git new-branch chore/\"$1\"; fi; }; f"
 	new-docs-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch docs/\"$1\" \"$2\"; else git new-branch docs/\"$1\"; fi; }; f"
+	new-performance-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch performance/\"$1\" \"$2\"; else git new-branch performance/\"$1\"; fi; }; f"
 	new-release-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch release/\"$1\" \"$2\"; else git new-branch release/\"$1\"; fi; }; f"
 	new-refactor-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch refactor/\"$1\" \"$2\"; else git new-branch refactor/\"$1\"; fi; }; f"
   new-test-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch test/\"$1\" \"$2\"; else git new-branch test/\"$1\"; fi; }; f"
 	new-build-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch build/\"$1\" \"$2\"; else git new-branch build/\"$1\"; fi; }; f"
+	new-ci-branch= "!f(){ if [ \"$2\" != '' ]; then git new-branch ci/\"$1\" \"$2\"; else git new-branch ci/\"$1\"; fi; }; f"
 	remove-tag= "!f(){ if [ \"$1\" != '' ]; then git tag -d \"$1\"; git push origin --delete \"$1\"; echo \"tag deleted: \"$1\"\"; else echo 'you forgot tag name'; fi; }; f"
-	clone-tag = "!f(){ git clone \"$1\" \"$2\" --branch \"$3\" --single-branch; }; f"
-	recent = "!f(){ \
+	clone-tag= "!f(){ git clone \"$1\" \"$2\" --branch \"$3\" --single-branch; }; f"
+	recent= "!f(){ \
 		count=$1 refbranch=$2 ref=$3; \
 		git for-each-ref \"${ref:-refs/heads}\" \
 			--sort=-committerdate \
@@ -85,18 +88,37 @@
 		done | \
 		( echo \"ahead|behind|branch|lastcommit|message|author\n\" && cat) | column -ts'|'; \
 	}; f"
-	recentb = "!f(){ \
+	recentb= "!f(){ \
 		count=$1; \
 		git recent \"${count:-10}\" origin/main refs/remotes; \
 	}; f"
-	recenttags = "!f(){ \
+	recenttags= "!f(){ \
 		count=$1; \
 		git recent \"${count:-10}\" origin/main refs/tags; \
 	}; f"
-	clone-partial = "!f(){ \
+	clone-partial= "!f(){ \
 		url=$1 folders=$2 branch=$3; \
 		git clone --filter=blob:none --no-checkout --depth 6 --sparse \"$url\" \"$4\"; \
 		cd \"$4\"; \
 		git sparse-checkout add \"$2\"; \
 		git checkout; \
 	}; f"
+    remote-tags= "!git ls-remote --tags origin"
+	hotfix-merge= "!git merge {$1} --no-commit --strategy ours"
+	current= "!git branch --no-color | grep '^\\* ' | grep -v 'no branch' | sed 's/^\\* //g'"
+	highest-tag= "!git tag -l --sort -version:refname | head -n 1"
+	releasing-branch= "!f(){ \
+		version=patch; \
+		if [ \"$1\" != '' ]; then \
+			version=\"$1\"; \
+		fi; \
+		tag=$(git highest-tag); \
+		tag=v$(semver bump "\"$version\"" "\"$tag\""); \
+		if [ \"$tag\" != '' ]; then \
+			git new-release-branch ${tag} origin/main; \
+			git merge origin/dev; \
+			git push origin release/${tag}; \
+		fi; \
+	}; f"
+	return-commit= "!f(){ git reset --hard $1; }; f"
+	force-push= "!f(){ git push --force origin $1; }; f"
